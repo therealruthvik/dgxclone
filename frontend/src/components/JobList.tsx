@@ -12,25 +12,21 @@ const STATUS_COLORS: Record<string, string> = {
 
 function LogStream({ jobId, status }: { jobId: string; status: string }) {
   const [lines, setLines] = useState<string[]>([]);
-  const [streaming, setStreaming] = useState(false);
   const esRef = useRef<EventSource | null>(null);
+  const startedRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const startStream = () => {
-    if (esRef.current) return;
+  useEffect(() => {
+    if (status === "queued" || startedRef.current) return;
+    startedRef.current = true;
     const token = localStorage.getItem("token");
-    setStreaming(true);
-    setLines([]);
-    const es = new EventSource(
-      `${BASE}/jobs/${jobId}/logs/stream?token=${token}`
-    );
+    const es = new EventSource(`${BASE}/jobs/${jobId}/logs/stream?token=${token}`);
     esRef.current = es;
 
     es.onmessage = (e) => {
       if (e.data === "[DONE]") {
         es.close();
         esRef.current = null;
-        setStreaming(false);
         return;
       }
       setLines((prev) => [...prev, e.data]);
@@ -40,32 +36,20 @@ function LogStream({ jobId, status }: { jobId: string; status: string }) {
     es.onerror = () => {
       es.close();
       esRef.current = null;
-      setStreaming(false);
     };
-  };
+  }, [status, jobId]);
 
   useEffect(() => {
-    return () => {
-      esRef.current?.close();
-    };
+    return () => { esRef.current?.close(); };
   }, []);
 
+  if (!lines.length) return null;
+
   return (
-    <div className="mt-2">
-      <button
-        onClick={startStream}
-        disabled={streaming}
-        className="text-xs bg-gray-700 hover:bg-gray-600 disabled:opacity-50 rounded px-2 py-1 mb-2"
-      >
-        {streaming ? "Streaming..." : "Stream Logs"}
-      </button>
-      {lines.length > 0 && (
-        <pre className="text-xs bg-gray-950 rounded p-2 max-h-48 overflow-y-auto text-gray-300 whitespace-pre-wrap">
-          {lines.join("\n")}
-          <div ref={bottomRef} />
-        </pre>
-      )}
-    </div>
+    <pre className="text-xs bg-gray-950 rounded p-2 max-h-48 overflow-y-auto text-gray-300 whitespace-pre-wrap mt-2">
+      {lines.join("\n")}
+      <div ref={bottomRef} />
+    </pre>
   );
 }
 
