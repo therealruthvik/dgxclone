@@ -44,10 +44,7 @@ spec:
               readOnly: true
             - name: dev
               mountPath: /dev
-            - name: nvidia-lib
-              mountPath: /usr/lib/x86_64-linux-gnu
-              readOnly: true
-                      # path where libnvidia‑ml.so.* lives
+
             
       volumes:
         - name: pod-resources
@@ -56,9 +53,6 @@ spec:
         - name: dev
           hostPath:
             path: /dev
-        - name: nvidia-lib
-          hostPath:
-            path: /usr/lib/x86_64-linux-gnu 
 ---
 apiVersion: v1
 kind: Service
