@@ -1,9 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
-import { login, register, fetchJobs, fetchGpuMetrics, fetchK8sStats, submitJob, deleteJob } from "@/lib/api";
+import { login, register, fetchJobs, fetchK8sStats, submitJob, deleteJob } from "@/lib/api";
 import JobSubmitForm from "@/components/JobSubmitForm";
 import JobList from "@/components/JobList";
-import GpuStats from "@/components/GpuStats";
 import K8sStats from "@/components/K8sStats";
 
 export default function Home() {
@@ -12,7 +11,6 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [jobs, setJobs] = useState<any[]>([]);
-  const [gpu, setGpu] = useState<any>(null);
   const [k8s, setK8s] = useState<any>(null);
 
   useEffect(() => {
@@ -23,9 +21,8 @@ export default function Home() {
   useEffect(() => {
     if (!token) return;
     const load = async () => {
-      const [j, g, k] = await Promise.all([fetchJobs(), fetchGpuMetrics(), fetchK8sStats()]);
+      const [j, k] = await Promise.all([fetchJobs(), fetchK8sStats()]);
       setJobs(j);
-      setGpu(g);
       setK8s(k);
     };
     load();
@@ -111,7 +108,6 @@ export default function Home() {
       <K8sStats data={k8s} />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-6">
-          <GpuStats data={gpu} />
           <JobSubmitForm onSubmit={handleSubmit} />
         </div>
         <div className="lg:col-span-2">
