@@ -78,6 +78,7 @@ def run_job(job_id: str):
                 spec=k8s_client.V1PodSpec(
                     containers=[container],
                     restart_policy="Never",
+                    runtime_class_name="nvidia" if job.get("gpu_count", 0) > 0 else None,
                 ),
             ),
             backoff_limit=0,
