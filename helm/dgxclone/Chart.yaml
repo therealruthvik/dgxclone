@@ -1,0 +1,13 @@
+apiVersion: v2
+name: dgxclone
+description: Self-hosted GPU job platform — submit Docker-based AI workloads, stream live logs, monitor GPU metrics.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - gpu
+  - ai
+  - jobs
+  - kubernetes
+maintainers:
+  - name: dgxclone

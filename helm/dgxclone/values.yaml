@@ -1,0 +1,132 @@
+# ─────────────────────────────────────────────
+# Image registry settings
+# Build and push the three custom images first:
+#   docker build -t ruthvikg31/runaiclone-backend:latest -f backend/Dockerfile .
+#   docker build -t ruthvikg31/runaiclone-worker:latest  -f worker/Dockerfile  .
+#   docker build --build-arg NEXT_PUBLIC_API_URL="" \
+#                -t ruthvikg31/runaiclone-frontend:latest -f frontend/Dockerfile ./frontend
+# ─────────────────────────────────────────────
+images:
+  backend:
+    repository: ruthvikg31/runaiclone-backend
+    tag: latest
+    pullPolicy: Always
+  worker:
+    repository: ruthvikg31/runaiclone-worker
+    tag: latest
+    pullPolicy: Always
+  frontend:
+    repository: ruthvikg31/runaiclone-frontend
+    tag: latest
+    pullPolicy: Always
+
+# ─────────────────────────────────────────────
+# Backend
+# ─────────────────────────────────────────────
+backend:
+  replicaCount: 1
+  # Set a long random string — used to sign JWT tokens
+  secretKey: "change-me-in-production"
+  service:
+    type: ClusterIP
+    port: 8000
+  resources: {}
+
+# ─────────────────────────────────────────────
+# Worker
+# GPU jobs are launched as k8s Jobs in the release namespace.
+# The worker pod itself does NOT need a GPU; only the job pods it creates do.
+# ─────────────────────────────────────────────
+worker:
+  replicaCount: 1
+  resources: {}
+
+# ─────────────────────────────────────────────
+# Frontend
+# apiUrl: full backend URL baked into the image at build time.
+#   Leave empty ("") when using Ingress (relative API calls routed by Ingress).
+#   Set to "http://<node-ip>:<node-port>" when using NodePort without Ingress.
+# ─────────────────────────────────────────────
+frontend:
+  replicaCount: 1
+  apiUrl: ""
+  service:
+    type: ClusterIP
+    port: 3000
+  resources: {}
+
+# ─────────────────────────────────────────────
+# Redis
+# ─────────────────────────────────────────────
+redis:
+  image: redis:7-alpine
+  service:
+    port: 6379
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: ""
+
+# ─────────────────────────────────────────────
+# DCGM Exporter (GPU metrics, one pod per GPU node)
+# Disable if the cluster has no NVIDIA GPUs.
+# ─────────────────────────────────────────────
+dcgm:
+  enabled: true
+  image: nvcr.io/nvidia/k8s/dcgm-exporter:3.3.5-3.4.0-ubuntu22.04
+  service:
+    port: 9400
+  # Nodes that carry NVIDIA GPUs should be labelled nvidia.com/gpu.present=true
+  # by the NVIDIA device plugin or the GPU operator.
+  nodeSelector:
+    nvidia.com/gpu.present: "true"
+  tolerations: []
+
+# ─────────────────────────────────────────────
+# Prometheus
+# ─────────────────────────────────────────────
+prometheus:
+  enabled: true
+  image: prom/prometheus:v2.51.0
+  service:
+    type: ClusterIP
+    port: 9090
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: ""
+  resources: {}
+
+# ─────────────────────────────────────────────
+# Grafana
+# ─────────────────────────────────────────────
+grafana:
+  enabled: true
+  image: grafana/grafana:10.4.2
+  adminPassword: admin
+  service:
+    type: ClusterIP
+    port: 3000
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: ""
+  resources: {}
+
+# ─────────────────────────────────────────────
+# Ingress
+# Requires an Ingress controller (e.g. ingress-nginx).
+# When enabled, frontend is served at / and backend at /api via path rewrite.
+# Set host to the DNS name or IP of your cluster.
+# ─────────────────────────────────────────────
+ingress:
+  enabled: true
+  className: nginx
+  host: dgxclone.local
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  tls: []
+  # tls:
+  #   - secretName: dgxclone-tls
+  #     hosts:
+  #       - dgxclone.local

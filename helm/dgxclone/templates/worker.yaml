@@ -1,0 +1,33 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dgxclone.fullname" . }}-worker
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dgxclone.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  replicas: {{ .Values.worker.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "dgxclone.fullname" . }}-worker
+  template:
+    metadata:
+      labels:
+        app: {{ include "dgxclone.fullname" . }}-worker
+    spec:
+      serviceAccountName: {{ include "dgxclone.fullname" . }}-worker
+      containers:
+        - name: worker
+          image: "{{ .Values.images.worker.repository }}:{{ .Values.images.worker.tag }}"
+          imagePullPolicy: {{ .Values.images.worker.pullPolicy }}
+          env:
+            - name: REDIS_URL
+              value: "redis://{{ include "dgxclone.fullname" . }}-redis:{{ .Values.redis.service.port }}"
+            - name: K8S_NAMESPACE
+              value: {{ .Release.Namespace | quote }}
+          {{- with .Values.worker.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}

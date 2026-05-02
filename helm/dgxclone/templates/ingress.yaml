@@ -1,0 +1,48 @@
+{{- if .Values.ingress.enabled }}
+---
+# Ingress routes:
+#   /          → frontend service
+#   /api(/|$)  → backend service (nginx strips /api prefix via rewrite-target)
+#
+# Frontend image must be built with NEXT_PUBLIC_API_URL="" (empty) so API
+# calls use relative paths that are intercepted here.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "dgxclone.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dgxclone.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          # Backend: strip /api prefix before forwarding (rewrite-target annotation handles this)
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "dgxclone.fullname" . }}-backend
+                port:
+                  number: {{ .Values.backend.service.port }}
+          # Frontend: catch-all
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "dgxclone.fullname" . }}-frontend
+                port:
+                  number: {{ .Values.frontend.service.port }}
+{{- end }}

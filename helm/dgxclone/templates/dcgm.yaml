@@ -1,0 +1,63 @@
+{{- if .Values.dcgm.enabled }}
+---
+# DaemonSet: one DCGM exporter pod per GPU node
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "dgxclone.fullname" . }}-dcgm
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dgxclone.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dcgm
+spec:
+  selector:
+    matchLabels:
+      app: {{ include "dgxclone.fullname" . }}-dcgm
+  template:
+    metadata:
+      labels:
+        app: {{ include "dgxclone.fullname" . }}-dcgm
+    spec:
+      {{- with .Values.dcgm.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.dcgm.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: dcgm-exporter
+          image: {{ .Values.dcgm.image }}
+          ports:
+            - containerPort: 9400
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+          securityContext:
+            runAsNonRoot: false
+            runAsUser: 0
+          volumeMounts:
+            - name: pod-resources
+              mountPath: /var/lib/kubelet/pod-resources
+              readOnly: true
+      volumes:
+        - name: pod-resources
+          hostPath:
+            path: /var/lib/kubelet/pod-resources
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dgxclone.fullname" . }}-dcgm
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dgxclone.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ include "dgxclone.fullname" . }}-dcgm
+  ports:
+    - port: {{ .Values.dcgm.service.port }}
+      targetPort: 9400
+{{- end }}

@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60 * 24
     docker_base_image: str = "nvcr.io/nvidia/pytorch:24.01-py3"
     gpu_device_id: str = "0"
+    k8s_namespace: str = "default"
 
     class Config:
         env_file = ".env"

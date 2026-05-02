@@ -25,6 +25,7 @@ class Job(BaseModel):
     finished_at: Optional[datetime] = None
     exit_code: Optional[int] = None
     log_output: Optional[str] = None
+    pod_name: Optional[str] = None
     owner: str = "default"
 
 
