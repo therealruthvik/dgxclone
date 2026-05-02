@@ -34,9 +34,11 @@ async def stream_logs(job_id: str, username: str = Depends(get_current_user)):
 
         container_id = job.get("container_id")
         if not container_id:
-            # Poll until container_id appears or job finishes
-            for _ in range(30):
-                await asyncio.sleep(1)
+            # Poll until container_id appears or job finishes (large images take minutes to pull)
+            for i in range(180):
+                await asyncio.sleep(2)
+                if i % 20 == 0:
+                    yield "data: [Pulling image, please wait...]\n\n"
                 raw2 = _redis.get(JOB_KEY.format(id=job_id))
                 if not raw2:
                     break
@@ -52,7 +54,7 @@ async def stream_logs(job_id: str, username: str = Depends(get_current_user)):
                     return
 
         if not container_id:
-            yield "data: [No container found]\n\n"
+            yield "data: [Timed out waiting for container — image may still be pulling]\n\n"
             yield "data: [DONE]\n\n"
             return
 
