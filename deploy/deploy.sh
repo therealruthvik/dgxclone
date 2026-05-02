@@ -2,7 +2,7 @@
 # Run from your Mac: ./deploy/deploy.sh
 set -euo pipefail
 
-LAMBDA_IP="155.248.198.208"
+LAMBDA_IP="YOUR_SERVER_IP"
 LAMBDA_USER="${1:-ubuntu}"
 REMOTE_DIR="~/dgxclone"
 
