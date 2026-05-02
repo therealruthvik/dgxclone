@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "DGX Cloud Clone",
+  title: "RUN:ai",
   description: "Run AI workloads on your GPU",
 };
 

@@ -23,22 +23,12 @@ _DCGM_FIELDS = {
 
 
 def _init_k8s():
-    kubeconfig = os.environ.get("KUBECONFIG", "/etc/rancher/k3s/k3s.yaml")
-    if not os.path.exists(kubeconfig):
-        raise RuntimeError(f"k3s not installed — kubeconfig not found at {kubeconfig}. Run deploy/setup.sh")
     try:
-        k8s_config.load_kube_config(config_file=kubeconfig)
-        # k3s binds to 127.0.0.1 — rewrite to host.docker.internal for container access
-        cfg = k8s_client.Configuration.get_default_copy()
-        if "127.0.0.1" in cfg.host:
-            cfg.host = cfg.host.replace("127.0.0.1", "host.docker.internal")
-            cfg.verify_ssl = False
-            k8s_client.Configuration.set_default(cfg)
-    except RuntimeError:
-        raise
+        k8s_config.load_incluster_config()
     except Exception:
+        kubeconfig = os.environ.get("KUBECONFIG", "/etc/rancher/k3s/k3s.yaml")
         try:
-            k8s_config.load_incluster_config()
+            k8s_config.load_kube_config(config_file=kubeconfig)
         except Exception as e:
             raise RuntimeError(f"No k8s config available: {e}")
 

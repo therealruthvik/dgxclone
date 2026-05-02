@@ -49,7 +49,7 @@ worker:
 # ─────────────────────────────────────────────
 frontend:
   replicaCount: 1
-  apiUrl: ""
+  apiUrl: "/api"
   service:
     type: ClusterIP
     port: 3000

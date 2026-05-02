@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .routers import auth, jobs, metrics, logs, k8s
 
-app = FastAPI(title="DGX Cloud Clone", version="0.1.0")
+app = FastAPI(title="RUN:ai", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,

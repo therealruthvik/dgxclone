@@ -66,7 +66,7 @@ export default function Home() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="bg-gray-900 p-8 rounded-lg w-80 space-y-4">
-          <h1 className="text-2xl font-bold text-green-400">DGX Cloud Clone</h1>
+          <h1 className="text-2xl font-bold text-green-400">RUN:ai</h1>
           {error && <p className="text-red-400 text-sm">{error}</p>}
           <input
             className="w-full bg-gray-800 rounded px-3 py-2 text-sm"
@@ -97,7 +97,7 @@ export default function Home() {
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-green-400">DGX Cloud Clone</h1>
+        <h1 className="text-2xl font-bold text-green-400">RUN:ai</h1>
         <button
           onClick={() => { localStorage.removeItem("token"); setToken(null); }}
           className="text-sm text-gray-400 hover:text-white"
