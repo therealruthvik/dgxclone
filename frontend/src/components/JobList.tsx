@@ -13,12 +13,11 @@ const STATUS_COLORS: Record<string, string> = {
 function LogStream({ jobId, status }: { jobId: string; status: string }) {
   const [lines, setLines] = useState<string[]>([]);
   const esRef = useRef<EventSource | null>(null);
-  const startedRef = useRef(false);
+  const doneRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (status === "queued" || startedRef.current) return;
-    startedRef.current = true;
+    if (status === "queued" || doneRef.current || esRef.current) return;
     const token = localStorage.getItem("token");
     const es = new EventSource(`${BASE}/jobs/${jobId}/logs/stream?token=${token}`);
     esRef.current = es;
@@ -27,6 +26,7 @@ function LogStream({ jobId, status }: { jobId: string; status: string }) {
       if (e.data === "[DONE]") {
         es.close();
         esRef.current = null;
+        doneRef.current = true;
         return;
       }
       setLines((prev) => [...prev, e.data]);
