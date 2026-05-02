@@ -11,7 +11,7 @@ except ImportError:
 
 router = APIRouter(prefix="/k8s", tags=["k8s"])
 
-DCGM_URL = "http://dcgm-exporter:9400/metrics"
+DCGM_URL = os.environ.get("DCGM_URL", "http://dcgm-exporter:9400/metrics")
 
 _DCGM_FIELDS = {
     "DCGM_FI_DEV_GPU_UTIL":     "gpu_utilization_pct",

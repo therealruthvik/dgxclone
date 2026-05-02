@@ -45,6 +45,8 @@ spec:
                   key: SECRET_KEY
             - name: K8S_NAMESPACE
               value: {{ .Release.Namespace | quote }}
+            - name: DCGM_URL
+              value: "http://{{ include "dgxclone.fullname" . }}-dcgm:{{ .Values.dcgm.service.port }}/metrics"
           {{- with .Values.backend.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
