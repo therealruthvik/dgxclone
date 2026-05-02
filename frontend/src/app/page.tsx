@@ -35,8 +35,8 @@ export default function Home() {
       const t = await login(username, password);
       setToken(t);
       setError("");
-    } catch {
-      setError("Login failed");
+    } catch (e: any) {
+      setError(e.message || "Login failed");
     }
   };
 
@@ -44,8 +44,8 @@ export default function Home() {
     try {
       await register(username, password);
       await handleLogin();
-    } catch {
-      setError("Registration failed");
+    } catch (e: any) {
+      setError(e.message || "Registration failed");
     }
   };
 

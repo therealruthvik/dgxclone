@@ -12,7 +12,10 @@ export async function login(username: string, password: string): Promise<string>
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
   });
-  if (!res.ok) throw new Error("Login failed");
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || "Incorrect username or password");
+  }
   const data = await res.json();
   localStorage.setItem("token", data.access_token);
   return data.access_token;
@@ -24,7 +27,10 @@ export async function register(username: string, password: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
   });
-  if (!res.ok) throw new Error("Registration failed");
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || "Registration failed");
+  }
 }
 
 export async function fetchJobs() {
