@@ -1,22 +1,15 @@
 {{- if .Values.ingress.enabled }}
 ---
-# Ingress routes:
-#   /          → frontend service
-#   /api(/|$)  → backend service (nginx strips /api prefix via rewrite-target)
-#
-# Frontend image must be built with NEXT_PUBLIC_API_URL="" (empty) so API
-# calls use relative paths that are intercepted here.
+# Ingress 1: backend /api/* with prefix-strip rewrite
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "dgxclone.fullname" . }}
+  name: {{ include "dgxclone.fullname" . }}-api
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "dgxclone.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
   annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
   {{- if .Values.ingress.className }}
   ingressClassName: {{ .Values.ingress.className }}
@@ -29,7 +22,6 @@ spec:
     - host: {{ .Values.ingress.host }}
       http:
         paths:
-          # Backend: strip /api prefix before forwarding (rewrite-target annotation handles this)
           - path: /api(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
@@ -37,7 +29,27 @@ spec:
                 name: {{ include "dgxclone.fullname" . }}-backend
                 port:
                   number: {{ .Values.backend.service.port }}
-          # Frontend: catch-all
+---
+# Ingress 2: frontend catch-all (no rewrite — preserves /_next/static/* paths)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "dgxclone.fullname" . }}-frontend
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dgxclone.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
           - path: /
             pathType: Prefix
             backend:
