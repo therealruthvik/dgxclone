@@ -1,9 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
-import { login, register, fetchJobs, fetchGpuMetrics, submitJob, deleteJob } from "@/lib/api";
+import { login, register, fetchJobs, fetchGpuMetrics, fetchK8sStats, submitJob, deleteJob } from "@/lib/api";
 import JobSubmitForm from "@/components/JobSubmitForm";
 import JobList from "@/components/JobList";
 import GpuStats from "@/components/GpuStats";
+import K8sStats from "@/components/K8sStats";
 
 export default function Home() {
   const [token, setToken] = useState<string | null>(null);
@@ -12,6 +13,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [jobs, setJobs] = useState<any[]>([]);
   const [gpu, setGpu] = useState<any>(null);
+  const [k8s, setK8s] = useState<any>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("token");
@@ -21,9 +23,10 @@ export default function Home() {
   useEffect(() => {
     if (!token) return;
     const load = async () => {
-      const [j, g] = await Promise.all([fetchJobs(), fetchGpuMetrics()]);
+      const [j, g, k] = await Promise.all([fetchJobs(), fetchGpuMetrics(), fetchK8sStats()]);
       setJobs(j);
       setGpu(g);
+      setK8s(k);
     };
     load();
     const interval = setInterval(load, 5000);
@@ -105,6 +108,7 @@ export default function Home() {
           Logout
         </button>
       </div>
+      <K8sStats data={k8s} />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-6">
           <GpuStats data={gpu} />

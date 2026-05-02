@@ -62,3 +62,9 @@ export async function fetchGpuMetrics() {
   if (!res.ok) throw new Error("Failed to fetch GPU metrics");
   return res.json();
 }
+
+export async function fetchK8sStats() {
+  const res = await fetch(`${BASE}/k8s/stats`, { headers: authHeaders() });
+  if (!res.ok) throw new Error("Failed to fetch k8s stats");
+  return res.json();
+}
