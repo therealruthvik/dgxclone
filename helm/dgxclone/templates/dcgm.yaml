@@ -57,8 +57,8 @@ spec:
           hostPath:
             path: /dev
         - name: nvidia-lib
-              hostPath:
-                mountPath: /usr/lib/x86_64-linux-gnu 
+          hostPath:
+            path: /usr/lib/x86_64-linux-gnu 
 ---
 apiVersion: v1
 kind: Service
