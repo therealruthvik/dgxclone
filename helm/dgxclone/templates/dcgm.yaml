@@ -34,14 +34,21 @@ spec:
           securityContext:
             runAsNonRoot: false
             runAsUser: 0
+            capabilities:
+              add: ["SYS_ADMIN"]
           volumeMounts:
             - name: pod-resources
               mountPath: /var/lib/kubelet/pod-resources
               readOnly: true
+            - name: dev
+              mountPath: /dev
       volumes:
         - name: pod-resources
           hostPath:
             path: /var/lib/kubelet/pod-resources
+        - name: dev
+          hostPath:
+            path: /dev
 ---
 apiVersion: v1
 kind: Service
