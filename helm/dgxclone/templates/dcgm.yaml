@@ -10,6 +10,7 @@ metadata:
     {{- include "dgxclone.labels" . | nindent 4 }}
     app.kubernetes.io/component: dcgm
 spec:
+
   selector:
     matchLabels:
       app: {{ include "dgxclone.fullname" . }}-dcgm
@@ -26,6 +27,7 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      runtimeClassName: nvidia           # ← add this line
       containers:
         - name: dcgm-exporter
           image: {{ .Values.dcgm.image }}
@@ -42,6 +44,10 @@ spec:
               readOnly: true
             - name: dev
               mountPath: /dev
+            - name: nvidia-lib
+              hostPath:
+                path: /usr/lib/x86_64-linux-gnu           # path where libnvidia‑ml.so.* lives
+            
       volumes:
         - name: pod-resources
           hostPath:
