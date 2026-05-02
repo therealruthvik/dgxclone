@@ -80,7 +80,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=http://155.248.198.208:8000
+        - NEXT_PUBLIC_API_URL=http://${VM_IP}:8000
     restart: unless-stopped
     ports:
       - "3000:3000"
