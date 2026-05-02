@@ -18,10 +18,14 @@ services:
       - "8000:8000"
     environment:
       - REDIS_URL=redis://redis:6379
+      - KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - redis
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/rancher/k3s/k3s.yaml:/etc/rancher/k3s/k3s.yaml:ro
 
   worker:
     build:

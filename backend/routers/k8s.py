@@ -1,3 +1,4 @@
+import os
 import httpx
 from fastapi import APIRouter, Depends
 from ..auth import get_current_user
@@ -12,12 +13,27 @@ router = APIRouter(prefix="/k8s", tags=["k8s"])
 
 DCGM_URL = "http://dcgm-exporter:9400/metrics"
 
+_DCGM_FIELDS = {
+    "DCGM_FI_DEV_GPU_UTIL":     "gpu_utilization_pct",
+    "DCGM_FI_DEV_FB_USED":      "gpu_memory_used_mb",
+    "DCGM_FI_DEV_FB_FREE":      "gpu_memory_free_mb",
+    "DCGM_FI_DEV_GPU_TEMP":     "gpu_temperature_c",
+    "DCGM_FI_DEV_POWER_USAGE":  "gpu_power_w",
+}
+
 
 def _init_k8s():
+    kubeconfig = os.environ.get("KUBECONFIG", "/etc/rancher/k3s/k3s.yaml")
     try:
-        k8s_config.load_incluster_config()
+        k8s_config.load_kube_config(config_file=kubeconfig)
+        # k3s binds to 127.0.0.1 — rewrite to host.docker.internal for container access
+        cfg = k8s_client.Configuration.get_default_copy()
+        if "127.0.0.1" in cfg.host:
+            cfg.host = cfg.host.replace("127.0.0.1", "host.docker.internal")
+            cfg.verify_ssl = False
+            k8s_client.Configuration.set_default(cfg)
     except Exception:
-        k8s_config.load_kube_config()
+        k8s_config.load_incluster_config()
 
 
 def _parse_memory_gb(mem_str: str) -> float:
@@ -37,62 +53,77 @@ def _parse_memory_gb(mem_str: str) -> float:
 
 @router.get("/stats")
 async def k8s_stats(username: str = Depends(get_current_user)):
+    result: dict = {
+        "nodes": None,
+        "pods_running": None,
+        "pods_total": None,
+        "namespaces": None,
+        "memory_used_gb": None,
+        "memory_total_gb": None,
+        "gpu_utilization_pct": None,
+        "gpu_memory_used_mb": None,
+        "gpu_memory_total_mb": None,
+        "gpu_temperature_c": None,
+        "gpu_power_w": None,
+        "k8s_error": None,
+    }
+
+    # --- GPU metrics (DCGM — always available) ---
+    try:
+        async with httpx.AsyncClient(timeout=3) as client:
+            res = await client.get(DCGM_URL)
+            for line in res.text.splitlines():
+                if line.startswith("#"):
+                    continue
+                for dcgm_key, out_key in _DCGM_FIELDS.items():
+                    if line.startswith(dcgm_key + "{"):
+                        try:
+                            result[out_key] = float(line.split("} ")[-1].strip())
+                        except ValueError:
+                            pass
+        used = result.get("gpu_memory_used_mb")
+        free = result.get("gpu_memory_free_mb")
+        if used is not None and free is not None:
+            result["gpu_memory_total_mb"] = used + free
+    except Exception as e:
+        result["gpu_error"] = str(e)
+
+    # --- k8s stats ---
     if not _K8S_AVAILABLE:
-        return {"error": "kubernetes package not installed"}
+        result["k8s_error"] = "kubernetes package not installed"
+        return result
 
     try:
         _init_k8s()
         v1 = k8s_client.CoreV1Api()
 
         nodes = v1.list_node()
-        node_count = len(nodes.items)
+        result["nodes"] = len(nodes.items)
 
         pods = v1.list_pod_for_all_namespaces()
-        pods_running = sum(1 for p in pods.items if p.status.phase == "Running")
-        pods_total = len(pods.items)
+        result["pods_running"] = sum(1 for p in pods.items if p.status.phase == "Running")
+        result["pods_total"] = len(pods.items)
 
-        namespaces = v1.list_namespace()
-        namespace_count = len(namespaces.items)
+        result["namespaces"] = len(v1.list_namespace().items)
 
-        # Allocatable memory across all nodes
-        memory_total_gb = sum(
+        result["memory_total_gb"] = round(sum(
             _parse_memory_gb(n.status.allocatable.get("memory", "0Ki"))
             for n in nodes.items
             if n.status.allocatable
-        )
+        ), 1)
 
-        # Used memory from metrics server (optional — requires metrics-server addon)
-        memory_used_gb = 0.0
+        # Used memory from metrics-server (optional addon)
         try:
             custom = k8s_client.CustomObjectsApi()
             node_metrics = custom.list_cluster_custom_object("metrics.k8s.io", "v1beta1", "nodes")
-            memory_used_gb = sum(
+            result["memory_used_gb"] = round(sum(
                 _parse_memory_gb(item.get("usage", {}).get("memory", "0Ki"))
                 for item in node_metrics.get("items", [])
-            )
+            ), 1)
         except Exception:
             pass
 
-        # GPU utilization from DCGM exporter
-        gpu_utilization_pct = None
-        try:
-            async with httpx.AsyncClient(timeout=3) as client:
-                res = await client.get(DCGM_URL)
-                for line in res.text.splitlines():
-                    if line.startswith("DCGM_FI_DEV_GPU_UTIL{"):
-                        gpu_utilization_pct = float(line.split("} ")[-1].strip())
-                        break
-        except Exception:
-            pass
-
-        return {
-            "nodes": node_count,
-            "pods_running": pods_running,
-            "pods_total": pods_total,
-            "namespaces": namespace_count,
-            "memory_used_gb": round(memory_used_gb, 1),
-            "memory_total_gb": round(memory_total_gb, 1),
-            "gpu_utilization_pct": gpu_utilization_pct,
-        }
     except Exception as e:
-        return {"error": str(e)}
+        result["k8s_error"] = str(e)
+
+    return result
