@@ -84,11 +84,21 @@ async def stream_logs(job_id: str, username: str = Depends(get_current_user)):
                 namespace = settings.k8s_namespace
 
                 # Wait for pod to reach Running/Succeeded/Failed before tailing logs
-                for _ in range(60):
+                for i in range(200):
                     try:
                         pod = v1.read_namespaced_pod(name=pod_name, namespace=namespace)
                         if pod.status.phase in ("Running", "Succeeded", "Failed"):
                             break
+                        if i % 5 == 0:
+                            msg = f"[Pod phase: {pod.status.phase}]"
+                            try:
+                                cs = pod.status.container_statuses
+                                if cs and cs[0].state.waiting:
+                                    reason = cs[0].state.waiting.reason or "waiting"
+                                    msg = f"[{reason} — please wait...]"
+                            except Exception:
+                                pass
+                            loop.call_soon_threadsafe(log_queue.put_nowait, msg)
                     except Exception:
                         pass
                     time.sleep(3)
